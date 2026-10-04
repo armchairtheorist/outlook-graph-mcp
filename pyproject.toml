@@ -12,6 +12,7 @@ dependencies = [
     "azure-identity>=1.17",
     "azure-keyvault-secrets>=4.8",
     "uvicorn>=0.30",
+    "pypdf>=4.0",
 ]
 
 [project.optional-dependencies]

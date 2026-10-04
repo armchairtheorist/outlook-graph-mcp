@@ -1,7 +1,7 @@
 # outlook-graph-mcp
 
-A remote MCP server that gives Claude access to a **personal Microsoft account** (Outlook.com
-mail and calendar today; OneDrive, OneNote and To Do planned) through Microsoft Graph.
+A remote MCP server that gives Claude access to a **personal Microsoft account** — Outlook.com
+mail, calendar and contacts, OneDrive, OneNote and Microsoft To Do — through Microsoft Graph.
 Claude's built-in Microsoft 365 connector only works for work/school tenants; this fills the gap.
 
 ```
@@ -11,10 +11,20 @@ Claude ──OAuth (Entra, consumers tenant)──▶  FastMCP server on Azure C
                                                └──▶ Microsoft Graph  ◀── webhooks (change notifications)
 ```
 
-**Current tools** — mail: list, search, read, thread, attachments, send, reply, forward, draft,
-mark/flag/categorize, move, folders, server-side rules, auto-replies.
-Calendar: calendars, view (expanded recurrences), get, search, create, update, delete/cancel,
-accept/decline, free-slot finder. Meta: `whoami`, `events_recent` (webhook feed), `subscriptions_status`.
+**Tools (66)**
+
+| Area | Tools |
+|---|---|
+| Mail (18) | list, search, get, thread, attachment, send, reply, forward, draft, update (read/flag/categories), move, folders, create folder, rules (list/create/delete), mailbox settings, auto-replies |
+| Calendar (9) | calendars, view (recurrences expanded), get, search, create, update, delete/cancel, respond, free-slot finder |
+| OneDrive (13) | list, search, get, read file (text/base64), Office→PDF→text, upload text/base64 (large-file sessions), create folder, move/rename, delete, share link, recent, quota |
+| OneNote (8) | notebooks, sections, pages (list/search), get page as text, create page (Markdown-ish or HTML), append, create section, delete page |
+| To Do (9) | lists, tasks (open/completed), search across lists, create (due/reminder/checklist/recurrence), update, complete, delete, checklist item, create list |
+| Contacts (6) | list, search, get, create, update, delete |
+| Meta (3) | `whoami`, `events_recent` (webhook feed), `subscriptions_status` |
+
+Write tools are tagged `write`; the server's instructions tell Claude to confirm before sending,
+deleting or cancelling, and to prefer drafts when unsure.
 
 ## How auth works (read this once)
 
@@ -171,8 +181,7 @@ On Windows, `ops.ps1` wraps all of these: `.\ops.ps1 restart|status|logs|rotate-
 
 ## Roadmap
 
-- [ ] OneDrive tools (browse, upload/download, share links, delta)
-- [ ] OneNote tools (notebooks, sections, create/append pages)
-- [ ] Microsoft To Do tools
-- [ ] Contacts
+- [x] Mail, calendar, OneDrive, OneNote, To Do, contacts
 - [ ] Persist webhook feed to Azure Table so it survives restarts
+- [ ] OneDrive delta sync tool for "what changed since" queries
+- [ ] Excel round-trip helper (download → edit with openpyxl → upload), since the Excel REST API is unavailable on consumer OneDrive

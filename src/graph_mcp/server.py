@@ -15,13 +15,18 @@ from .config import Settings, get_settings
 from .graph import GraphClient
 from .token_store import build_token_store
 from .tools import calendar as calendar_tools
+from .tools import contacts as contacts_tools
+from .tools import drive as drive_tools
 from .tools import mail as mail_tools
+from .tools import onenote as onenote_tools
+from .tools import todo as todo_tools
 from .webhooks import WebhookManager
 
 log = logging.getLogger("graph_mcp")
 
 INSTRUCTIONS = """\
-You are connected to the owner's personal Microsoft account (Outlook.com mail and calendar).
+You are connected to the owner's personal Microsoft account: Outlook.com mail, calendar and
+contacts, OneDrive files, OneNote notebooks and Microsoft To Do.
 Everything here acts as the owner. Before sending mail, replying, deleting, or cancelling
 meetings, make sure that is what the owner asked for; prefer mail_create_draft when unsure.
 Message and event ids are opaque strings from earlier results; never invent them.
@@ -71,6 +76,10 @@ def build_app(settings: Settings | None = None) -> tuple[FastMCP, GraphClient]:
 
     mail_tools.register(mcp, graph)
     calendar_tools.register(mcp, graph, settings)
+    drive_tools.register(mcp, graph)
+    onenote_tools.register(mcp, graph)
+    todo_tools.register(mcp, graph, settings)
+    contacts_tools.register(mcp, graph)
 
     @mcp.tool(tags={"meta"})
     async def whoami() -> dict[str, Any]:

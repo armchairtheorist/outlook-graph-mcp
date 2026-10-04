@@ -103,6 +103,8 @@ class GraphClient:
     ) -> Any:
         """Perform one Graph call. Returns parsed JSON, bytes for binary, or None for 202/204."""
         url = path
+        if self._http.is_closed:
+            self._http = httpx.AsyncClient(base_url=GRAPH, timeout=30)
         hdrs = {"Authorization": f"Bearer {await self._token()}", **(headers or {})}
         for attempt in range(4):
             resp = await self._http.request(
