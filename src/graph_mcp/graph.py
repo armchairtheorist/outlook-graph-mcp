@@ -71,9 +71,15 @@ class GraphClient:
                 self._app().acquire_token_by_refresh_token, stored.refresh_token, GRAPH_SCOPES
             )
             if "access_token" not in result:
+                err = result.get("error")
+                hint = (
+                    "The Entra client secret is wrong or expired: rotate it (ops.ps1 rotate-secret) "
+                    "and restart."
+                    if err == "invalid_client"
+                    else "The Graph refresh token was revoked: re-run the seed script (ops.ps1 reseed)."
+                )
                 raise RuntimeError(
-                    f"Refresh failed: {result.get('error')}: {result.get('error_description')}. "
-                    "Re-run scripts/seed_token.py."
+                    f"Refresh failed: {err}: {result.get('error_description')} {hint}"
                 )
             self._access_token = result["access_token"]
             self._expires_at = time.time() + int(result.get("expires_in", 3600))
