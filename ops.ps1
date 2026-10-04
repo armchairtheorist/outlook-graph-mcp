@@ -46,7 +46,8 @@ function New-Revision {
   $stamp = Get-Date -Format "yyyyMMddTHHmmss"
   Write-Host "==> Rolling a new revision (re-reads Key Vault secrets)"
   az containerapp update -g $RG -n $NAME --set-env-vars "SECRETS_REFRESHED_AT=$stamp" -o none
-  Start-Sleep -Seconds 10
+  Write-Host "    waiting ~60s for traffic to move to the new revision ..."
+  Start-Sleep -Seconds 60
   Show-Health
 }
 
