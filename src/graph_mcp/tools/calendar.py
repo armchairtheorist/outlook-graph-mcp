@@ -122,14 +122,48 @@ def register(mcp: FastMCP, graph: GraphClient, settings: Settings) -> None:
     async def calendar_search(
         query: str, top: Annotated[int, Field(ge=1, le=100)] = 25
     ) -> list[dict[str, Any]]:
-        """Search events by subject/body/attendee text across all time."""
-        items = await graph.list(
+        """Search events by subject (server-side) plus body/location/attendee text (local scan of
+        the last 12 and next 12 months). Graph's $search is unavailable for events on personal
+        accounts, so this is a two-step search."""
+        q = query.replace("'", "''")
+        by_subject = await graph.list(
             "/me/events",
-            params={"$search": f'"{query}"', "$select": EV_SELECT, "$top": 25},
+            params={"$filter": f"contains(subject,'{q}')", "$select": EV_SELECT, "$top": 50},
             headers=tz_header,
             limit=top,
         )
-        return [_ev(e) for e in items]
+        found = {e["id"]: e for e in by_subject}
+        if len(found) < top:
+            now = datetime.now(UTC)
+            window = await graph.list(
+                "/me/calendarView",
+                params={
+                    "startDateTime": (now - timedelta(days=365)).isoformat(),
+                    "endDateTime": (now + timedelta(days=365)).isoformat(),
+                    "$select": EV_SELECT,
+                    "$top": 100,
+                },
+                headers=tz_header,
+                limit=1000,
+            )
+            ql = query.lower()
+            for e in window:
+                if e["id"] in found:
+                    continue
+                hay = " ".join(
+                    [
+                        e.get("subject") or "",
+                        e.get("bodyPreview") or "",
+                        (e.get("location") or {}).get("displayName") or "",
+                        " ".join(addr(a) for a in e.get("attendees", [])),
+                    ]
+                ).lower()
+                if ql in hay:
+                    found[e["id"]] = e
+                if len(found) >= top:
+                    break
+        items = sorted(found.values(), key=lambda e: (e.get("start") or {}).get("dateTime", ""))
+        return [_ev(e) for e in items[:top]]
 
     @mcp.tool(tags={"calendar", "write"})
     async def calendar_create_event(

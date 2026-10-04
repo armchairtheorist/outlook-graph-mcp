@@ -150,3 +150,80 @@ def test_provider_uses_pinned_issuer(app):
     from graph_mcp.auth import MSA_TENANT_ID
 
     assert MSA_TENANT_ID in str(app.auth._token_validator.issuer)
+
+
+async def test_thread_has_no_orderby_and_sorts_locally(app, graph_mock):
+    route = graph_mock.get("/me/messages").mock(
+        return_value=Response(
+            200,
+            json={
+                "value": [
+                    {
+                        "id": "b",
+                        "receivedDateTime": "2026-10-02T00:00:00Z",
+                        "body": {"content": "second"},
+                    },
+                    {
+                        "id": "a",
+                        "receivedDateTime": "2026-10-01T00:00:00Z",
+                        "body": {"content": "first"},
+                    },
+                ]
+            },
+        )
+    )
+    async with Client(app) as c:
+        r = await c.call_tool("mail_get_thread", {"conversation_id": "conv1"})
+    rows = json.loads(r.content[0].text)
+    assert (
+        "$orderby" not in route.calls[0].request.url.params
+    )  # Graph rejects it here (InefficientFilter)
+    assert [m["id"] for m in rows] == ["a", "b"]
+
+
+async def test_calendar_search_uses_filter_and_local_scan(app, graph_mock):
+    ev = graph_mock.get("/me/events").mock(
+        return_value=Response(
+            200,
+            json={
+                "value": [
+                    {
+                        "id": "e1",
+                        "subject": "Team meeting",
+                        "start": {"dateTime": "2026-10-10T01:00:00"},
+                    }
+                ]
+            },
+        )
+    )
+    graph_mock.get("/me/calendarView").mock(
+        return_value=Response(
+            200,
+            json={
+                "value": [
+                    {
+                        "id": "e1",
+                        "subject": "Team meeting",
+                        "start": {"dateTime": "2026-10-10T01:00:00"},
+                    },
+                    {
+                        "id": "e2",
+                        "subject": "Lunch",
+                        "bodyPreview": "pre-meeting sync",
+                        "start": {"dateTime": "2026-10-09T01:00:00"},
+                    },
+                    {
+                        "id": "e3",
+                        "subject": "Dentist",
+                        "start": {"dateTime": "2026-10-08T01:00:00"},
+                    },
+                ]
+            },
+        )
+    )
+    async with Client(app) as c:
+        r = await c.call_tool("calendar_search", {"query": "meeting"})
+    rows = json.loads(r.content[0].text)
+    assert ev.calls[0].request.url.params["$filter"] == "contains(subject,'meeting')"
+    assert "$search" not in ev.calls[0].request.url.params
+    assert [e["id"] for e in rows] == ["e2", "e1"]  # body match found locally, sorted by start

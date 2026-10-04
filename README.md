@@ -183,7 +183,16 @@ OneNote tools returned an empty list on an account with no notebooks (expected).
 - `findMeetingTimes` / `getSchedule` unavailable → `calendar_find_free_slots` computes locally.
 - Excel workbook API unsupported on consumer OneDrive (download/edit/upload instead).
 - Teams online meetings cannot be created.
-- Unified `/search/query` unsupported; per-resource `$search` is used instead. Graph `$search` matches word prefixes, so one-letter queries return nothing.
+- Unified `/search/query` unsupported; per-resource `$search` is used where available. Graph `$search` matches word prefixes, so one-letter queries return nothing.
+- `$search` is not supported on events (501); `calendar_search` uses `contains(subject,…)` plus a local scan of ±12 months.
+- `$orderby` must reference a `$filter` property or Graph returns `InefficientFilter`; thread ordering is done locally.
+
+## Approval settings in Claude
+
+The connector's per-tool "Needs approval" setting only takes effect when the chat's tool mode is
+**Manual**. In **Auto** mode every tool runs without pausing, including writes. Recommended:
+read tools (33, no `write` tag) → Always allow; write tools (33) → Needs approval; chat mode → Manual
+for anything that touches real mail.
 
 ## Roadmap
 

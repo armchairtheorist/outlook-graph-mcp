@@ -124,17 +124,18 @@ def register(mcp: FastMCP, graph: GraphClient) -> None:
         conversation_id: str, top: Annotated[int, Field(ge=1, le=50)] = 20
     ) -> list[dict[str, Any]]:
         """All messages in a conversation, oldest first, with text bodies."""
+        # Graph rejects $orderby on a property absent from $filter (InefficientFilter), so sort here.
         items = await graph.list(
             "/me/messages",
             params={
                 "$filter": f"conversationId eq '{conversation_id}'",
                 "$select": MSG_SELECT + ",body",
-                "$orderby": "receivedDateTime asc",
                 "$top": top,
             },
             headers={"Prefer": 'outlook.body-content-type="text"'},
             limit=top,
         )
+        items.sort(key=lambda x: x.get("receivedDateTime") or "")
         out = []
         for m in items:
             s = _summarize(m)
