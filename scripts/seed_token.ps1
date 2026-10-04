@@ -33,7 +33,7 @@ if (Test-Path $envFile) {
 if (-not $ClientId -or -not $ClientSecret) { throw "Need ClientId and ClientSecret (deploy.env or parameters)" }
 if (-not $KeyVaultUrl) { throw "Pass -KeyVaultUrl https://<vault>.vault.azure.net/" }
 
-$scopes = "offline_access User.Read Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite Calendars.ReadWrite Contacts.ReadWrite Files.ReadWrite Notes.ReadWrite Tasks.ReadWrite"
+$scopes = "openid profile offline_access User.Read Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite Calendars.ReadWrite Contacts.ReadWrite Files.ReadWrite Notes.ReadWrite Tasks.ReadWrite"
 $redirect = "http://localhost:$Port/"
 $authority = "https://login.microsoftonline.com/$Tenant/oauth2/v2.0"
 
@@ -80,6 +80,7 @@ $tok = Invoke-RestMethod -Method Post -Uri "$authority/token" -ContentType "appl
   code = $q["code"]; redirect_uri = $redirect; code_verifier = $verifier; scope = $scopes
 }
 if (-not $tok.refresh_token) { throw "No refresh_token in response. Is offline_access granted?" }
+if (-not $tok.id_token) { throw "No id_token in response (openid scope missing?)" }
 
 # ---- decode id_token claims (no signature check needed; came straight from the token endpoint) ----
 $payload = $tok.id_token.Split('.')[1].Replace('-','+').Replace('_','/')
