@@ -86,6 +86,14 @@ Entra → your app → **Authentication** → Web → **Add URI**:
 
 ### 4. Seed the Graph token
 
+Windows (no Python needed, uses your `az login`):
+
+```powershell
+.\scripts\seed_token.ps1 -KeyVaultUrl https://<vault>.vault.azure.net/
+```
+
+macOS/Linux (Python 3.12+):
+
 ```bash
 pip install -e .
 TOKEN_STORE=keyvault KEYVAULT_URL=https://<vault>.vault.azure.net \
