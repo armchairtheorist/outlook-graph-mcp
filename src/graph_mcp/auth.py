@@ -23,6 +23,16 @@ log = logging.getLogger(__name__)
 # Scope name defined under "Expose an API" in the app registration.
 API_SCOPE = "mcp.access"
 
+# Tokens for personal Microsoft accounts are always issued by this fixed tenant, regardless of
+# the "consumers" alias used in the authority URL. FastMCP derives the expected issuer from the
+# alias, which never matches, so we pin the real value.
+MSA_TENANT_ID = "9188040d-6c67-4c5b-b112-36a304b66dad"
+
+
+def expected_issuer(tenant: str) -> str:
+    tid = MSA_TENANT_ID if tenant == "consumers" else tenant
+    return f"https://login.microsoftonline.com/{tid}/v2.0"
+
 
 class OwnerOnlyAzureProvider(AzureProvider):
     def __init__(self, settings: Settings, graph: GraphClient, **kw: Any) -> None:
@@ -35,6 +45,7 @@ class OwnerOnlyAzureProvider(AzureProvider):
             required_scopes=[API_SCOPE],
             base_url=settings.base_url,
             jwt_signing_key=settings.jwt_signing_key,
+            token_issuer=expected_issuer(settings.entra_tenant),
             # Claude.ai / Claude desktop / Claude Code redirect targets.
             allowed_client_redirect_uris=[
                 "https://claude.ai/api/mcp/auth_callback",

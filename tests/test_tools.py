@@ -174,3 +174,16 @@ async def test_webhook_validation_and_notification(app):
         # MCP endpoint must demand auth
         r = await hc.post("/mcp", json={})
         assert r.status_code == 401
+
+
+def test_expected_issuer_pins_msa_tenant():
+    from graph_mcp.auth import MSA_TENANT_ID, expected_issuer
+
+    assert expected_issuer("consumers") == f"https://login.microsoftonline.com/{MSA_TENANT_ID}/v2.0"
+    assert expected_issuer("abc-123") == "https://login.microsoftonline.com/abc-123/v2.0"
+
+
+def test_provider_uses_pinned_issuer(app):
+    from graph_mcp.auth import MSA_TENANT_ID
+
+    assert MSA_TENANT_ID in str(app.auth._token_validator.issuer)
