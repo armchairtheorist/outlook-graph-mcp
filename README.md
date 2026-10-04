@@ -67,7 +67,9 @@ You will come back to **Authentication** in step 3 to add the server's callback 
 
 ```bash
 cp deploy.env.example deploy.env   # fill in ENTRA_CLIENT_ID / ENTRA_CLIENT_SECRET
-./deploy.sh
+./deploy.sh                         # macOS/Linux/Git Bash
+# or, on Windows PowerShell:
+.\deploy.ps1
 ```
 
 `deploy.sh` creates resource group `graph-mcp-rg` in Southeast Asia with: Container Apps
