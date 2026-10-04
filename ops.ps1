@@ -3,7 +3,8 @@
   Day-to-day operations for the deployed server. Requires `az login`.
 
 .USAGE
-  .\ops.ps1 restart                      # restart the running revision (e.g. after seeding/rotating secrets)
+  .\ops.ps1 restart                      # restart the running revision (e.g. after seeding the Graph token)
+  .\ops.ps1 refresh-secrets              # new revision so Key Vault secret changes take effect immediately
   .\ops.ps1 status                       # revision, replica state, health endpoint
   .\ops.ps1 logs [-Tail 100] [-Follow]   # container logs
   .\ops.ps1 rotate-secret                # prompt for a new Entra client secret, store in Key Vault, restart
@@ -11,7 +12,7 @@
 #>
 param(
   [Parameter(Position = 0)]
-  [ValidateSet("restart", "status", "logs", "rotate-secret", "reseed")]
+  [ValidateSet("restart", "refresh-secrets", "status", "logs", "rotate-secret", "reseed")]
   [string]$Action = "status",
   [int]$Tail = 100,
   [switch]$Follow
@@ -39,6 +40,16 @@ function Restart-App {
   Show-Health
 }
 
+function New-Revision {
+  # Key Vault-backed secrets are read when a revision is created (and on a ~30 min timer), so a
+  # restart alone can keep serving an old value. Bumping an env var forces a fresh revision.
+  $stamp = Get-Date -Format "yyyyMMddTHHmmss"
+  Write-Host "==> Rolling a new revision (re-reads Key Vault secrets)"
+  az containerapp update -g $RG -n $NAME --set-env-vars "SECRETS_REFRESHED_AT=$stamp" -o none
+  Start-Sleep -Seconds 10
+  Show-Health
+}
+
 function Show-Health {
   $url = Get-Url
   try   { $h = Invoke-RestMethod "$url/healthz"; Write-Host "healthz: ok=$($h.ok) owner=$($h.owner)" }
@@ -46,7 +57,8 @@ function Show-Health {
 }
 
 switch ($Action) {
-  "restart" { Restart-App }
+  "restart"         { Restart-App }
+  "refresh-secrets" { New-Revision }
 
   "status" {
     az containerapp revision list -g $RG -n $NAME -o table `
@@ -69,7 +81,7 @@ switch ($Action) {
     if (Test-Path deploy.env) {
       (Get-Content deploy.env) -replace '^ENTRA_CLIENT_SECRET=.*', "ENTRA_CLIENT_SECRET=$plain" | Set-Content deploy.env
     }
-    Restart-App
+    New-Revision
     Write-Host "Done. Delete the old secret in Entra > Certificates & secrets."
   }
 

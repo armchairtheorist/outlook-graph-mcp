@@ -153,7 +153,7 @@ On Windows, `ops.ps1` wraps all of these: `.\ops.ps1 restart|status|logs|rotate-
 
 | Task | How |
 |---|---|
-| Restart | `.\ops.ps1 restart` |
+| Restart | `.\ops.ps1 restart` (after seeding) · `.\ops.ps1 refresh-secrets` (after changing a Key Vault secret) |
 | Logs | `az containerapp logs show -g graph-mcp-rg -n graphmcp --follow` |
 | Health | `curl https://<url>/healthz` → `{"ok":true,"owner":"you@live.com"}` |
 | Rotate client secret | New secret in Entra → `az keyvault secret set --vault-name <kv> -n entra-client-secret --value ...` → restart |
