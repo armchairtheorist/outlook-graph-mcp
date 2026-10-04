@@ -64,7 +64,13 @@ def register(mcp: FastMCP, graph: GraphClient) -> None:
 
     @mcp.tool(tags={"contacts"})
     async def contacts_search(
-        query: Annotated[str, Field(description="Name, email or company fragment")],
+        query: Annotated[
+            str,
+            Field(
+                description="Name, email or company. Matches whole words by prefix "
+                "('Jas' finds Jasmine; a single letter finds nothing). Use contacts_list to browse."
+            ),
+        ],
         top: Annotated[int, Field(ge=1, le=100)] = 25,
     ) -> list[dict[str, Any]]:
         """Search contacts."""

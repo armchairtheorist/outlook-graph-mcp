@@ -171,13 +171,19 @@ On Windows, `ops.ps1` wraps all of these: `.\ops.ps1 restart|status|logs|rotate-
 | Webhook subscriptions | Ask Claude to run `subscriptions_status`; renewed daily, 6.5-day lifetime |
 | Log everyone out | Change `jwt-signing-key` in Key Vault and restart |
 
+## Verified against a live account (2026-10-04)
+
+Mail list/folders, calendar view, OneDrive quota and listing, To Do lists, contacts list and
+search, webhooks subscription and `whoami` were all exercised through Claude after deployment.
+OneNote tools returned an empty list on an account with no notebooks (expected).
+
 ## Known Graph limits for personal accounts
 
 - No unattended auth: the owner must sign in once (step 4).
 - `findMeetingTimes` / `getSchedule` unavailable → `calendar_find_free_slots` computes locally.
 - Excel workbook API unsupported on consumer OneDrive (download/edit/upload instead).
 - Teams online meetings cannot be created.
-- Unified `/search/query` unsupported; per-resource `$search` is used instead.
+- Unified `/search/query` unsupported; per-resource `$search` is used instead. Graph `$search` matches word prefixes, so one-letter queries return nothing.
 
 ## Roadmap
 
