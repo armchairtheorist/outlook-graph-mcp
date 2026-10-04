@@ -1,0 +1,14 @@
+.env
+.graph_token.json
+.graph_token.tmp
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+.venv/
+infra/*.json
+!infra/*.bicepparam
+deploy.env
+.deploy-state.env

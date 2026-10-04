@@ -1,0 +1,45 @@
+# CI on every push/PR; deploy to Azure on push to main.
+# Deploy uses OIDC federation (no stored Azure credentials). Set up once with the commands in README.
+name: ci-deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src scripts tests && ruff format --check src scripts tests
+      - run: pytest -q
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build image in ACR
+        run: |
+          ACR=$(az acr list -g "${{ vars.AZURE_RG }}" --query '[0].name' -o tsv)
+          az acr build -r "$ACR" -t "graph-mcp:${GITHUB_SHA::7}" -t graph-mcp:latest .
+          echo "IMAGE=$ACR.azurecr.io/graph-mcp:${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - name: Roll out new image
+        run: |
+          az containerapp update -g "${{ vars.AZURE_RG }}" -n "${{ vars.AZURE_APP_NAME }}" --image "$IMAGE" -o none
+          echo "Deployed $IMAGE"
