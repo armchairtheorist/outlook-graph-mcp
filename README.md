@@ -177,6 +177,22 @@ Mail list/folders, calendar view, OneDrive quota and listing, To Do lists, conta
 search, webhooks subscription and `whoami` were all exercised through Claude after deployment.
 OneNote tools returned an empty list on an account with no notebooks (expected).
 
+## Maintenance calendar
+
+Nothing is needed week to week. The server refreshes its own Graph token, renews webhook
+subscriptions daily, and recreates them on startup if they lapsed.
+
+| When | What | How |
+|---|---|---|
+| Monthly (automatic) | Dependabot opens a PR grouping dependency updates; CI runs on it | Merge, then `.\deploy.ps1` (or let CD do it if configured) |
+| Every ~90 days at most | Use the connector at least once so the Graph refresh token stays alive (Microsoft revokes personal-account refresh tokens after 90 days idle) | Normal use is enough. If `whoami` ever says the token was revoked: `.\ops.ps1 reseed` |
+| Before the client secret expires (24 months from creation; set a reminder) | New secret in Entra → Key Vault → new revision | `.\ops.ps1 rotate-secret` |
+| After a Microsoft password change or security event | Graph token is revoked | `.\ops.ps1 reseed` |
+| Quarterly | Glance at cost (Azure Portal → Cost Management) and `.\ops.ps1 status` | Expect ≈US$10–15/month |
+| If the public URL ever changes (recreated environment) | Update the Entra redirect URI and the connector URL in Claude | README step 3 and 5 |
+
+Optional once: set an Azure budget alert on the resource group so a surprise is an email, not an invoice.
+
 ## Known Graph limits for personal accounts
 
 - No unattended auth: the owner must sign in once (step 4).
